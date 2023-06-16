@@ -1,5 +1,5 @@
 import express from "express";
-import { execSync } from "child_process";
+import sharp from "sharp";
 import { getUsers } from "./repository";
 import { getUserByUserId } from "./repository";
 import { getFileByFileId } from "../files/repository";
@@ -30,9 +30,10 @@ usersRouter.get(
       }
       const path = userIcon.path;
       // 500px x 500pxでリサイズ
-      const data = execSync(`convert ${path} -resize 500x500! PNG:-`, {
-        shell: "/bin/bash",
-      });
+      const data = await sharp(path)
+        .resize({ width: 500, height: 500 })
+        .toFormat("png")
+        .toBuffer();
       res.status(200).json({
         fileName: userIcon.fileName,
         data: data.toString("base64"),
