@@ -1,5 +1,11 @@
 import { RowDataPacket } from "mysql2";
-import { User, SearchedUser, UserForFilter, MatchGroupDetail } from "./types";
+import {
+  User,
+  SearchedUser,
+  MatchGroupDetail,
+  Owner,
+  UserForFilter,
+} from "./types";
 
 export const convertDateToString = (date: Date): string => {
   return (
@@ -74,4 +80,18 @@ export const convertUsersForFilterToUsers = (
     } = userForFilter;
     return user;
   });
+};
+
+export const convertToOwner = (row: RowDataPacket): Owner => {
+  return {
+    userId: row.user_id,
+    userName: row.user_name,
+    userIcon: {
+      fileId: row.user_icon_id,
+      fileName: row.file_name,
+    },
+    officeId: row.office_id,
+    officeName: row.office_name,
+    departmentId: row.department_id,
+  };
 };

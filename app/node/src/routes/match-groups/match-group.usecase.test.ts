@@ -284,7 +284,7 @@ describe("POST /api/v1/match-groups", () => {
     const mockGetUserForFilter = getUserForFilter as jest.Mock;
     mockGetUserForFilter.mockReturnValue(mockMatchMembers[0]);
 
-    const res = await createMatchGroup(mockMatchGroupConfig, 1000);
+    const res = await createMatchGroup(mockMatchGroupConfig);
 
     expect(res).toBeUndefined();
   });

@@ -67,3 +67,8 @@ export interface UserForFilter extends User {
   departmentName: string;
   skillNames: string[];
 }
+
+export interface Owner extends User {
+  officeId: string;
+  departmentId: string;
+}

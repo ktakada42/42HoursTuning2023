@@ -1,11 +1,19 @@
 import { RowDataPacket } from "mysql2";
 import pool from "../../util/mysql";
-import { SearchedUser, User, UserForFilter } from "../../model/types";
 import {
+  MatchGroupConfig,
+  Owner,
+  SearchedUser,
+  User,
+  UserForFilter,
+} from "../../model/types";
+import {
+  convertToOwner,
   convertToSearchedUser,
   convertToUserForFilter,
   convertToUsers,
 } from "../../model/utils";
+import { getUserIdsBeforeMatched } from "../match-groups/repository";
 
 export const getUserIdByMailAndPassword = async (
   mail: string,
@@ -274,4 +282,124 @@ export const getUserForFilter = async (
   user.skill_names = skillNameRows.map((row) => row.skill_name);
 
   return convertToUserForFilter(user);
+};
+
+export const getOwnerByUserId = async (userId: string): Promise<Owner> => {
+  const [ownerRow] = await pool.query<RowDataPacket[]>(
+    "SELECT user_id, user_name, office_id, user_icon_id FROM user WHERE user_id = ?",
+    [userId]
+  );
+  const owner = ownerRow[0];
+
+  const [officeNameRow] = await pool.query<RowDataPacket[]>(
+    `SELECT office_name FROM office WHERE office_id = ?`,
+    [owner.office_id]
+  );
+  const [fileNameRow] = await pool.query<RowDataPacket[]>(
+    `SELECT file_name FROM file WHERE file_id = ?`,
+    [owner.user_icon_id]
+  );
+  const [departmentIdRow] = await pool.query<RowDataPacket[]>(
+    `SELECT department_id FROM department_role_member WHERE user_id = ? AND belong = true`,
+    [owner.user_id]
+  );
+
+  owner.office_name = officeNameRow[0].office_name;
+  owner.file_name = fileNameRow[0].file_name;
+  owner.department_id = departmentIdRow[0].department_id;
+
+  return convertToOwner(owner);
+};
+
+export const getMembers = async (
+  owner: Owner,
+  matchGroupConfig: MatchGroupConfig
+): Promise<User[] | undefined> => {
+  if (
+    matchGroupConfig.departmentFilter === "none" &&
+    matchGroupConfig.officeFilter === "none" &&
+    matchGroupConfig.skillFilter.length === 0
+  ) {
+    const excludeUserIds = [owner.userId];
+    if (matchGroupConfig.neverMatchedFilter) {
+      const matchedBeforeUserIds = await getUserIdsBeforeMatched(owner.userId);
+      excludeUserIds.push(...matchedBeforeUserIds);
+    }
+
+    const [memberIdRows] = await pool.query<RowDataPacket[]>(
+      `SELECT user_id FROM user WHERE user_id NOT IN (?) ORDER BY RAND() LIMIT ?`,
+      [excludeUserIds, matchGroupConfig.numOfMembers - 1]
+    );
+    const memberIds = memberIdRows.map((row) => row.user_id);
+
+    return getUsersByUserIds(memberIds.concat(owner.userId));
+  }
+
+  let candidateUserIds: string[] = [];
+
+  if (matchGroupConfig.departmentFilter === "onlyMyDepartment") {
+    const [departmentMatchUserIdRows] = await pool.query<RowDataPacket[]>(
+      `SELECT user_id FROM department_role_member WHERE department_id = ? AND belong = true AND user_id != ?`,
+      [owner.departmentId, owner.userId]
+    );
+    departmentMatchUserIdRows.map((row) => candidateUserIds.push(row.user_id));
+  } else if (matchGroupConfig.departmentFilter === "excludeMyDepartment") {
+    const [departmentMatchUserIdRows] = await pool.query<RowDataPacket[]>(
+      `SELECT user_id FROM department_role_member WHERE department_id != ? AND belong = true`,
+      [owner.departmentId]
+    );
+    departmentMatchUserIdRows.map((row) => candidateUserIds.push(row.user_id));
+  }
+  console.log("department filter done");
+
+  if (matchGroupConfig.officeFilter === "onlyMyOffice") {
+    const [officeMatchUserIdRows] = await pool.query<RowDataPacket[]>(
+      `SELECT user_id FROM user WHERE office_id = ? AND user_id != ?`,
+      [owner.officeId, owner.userId]
+    );
+    officeMatchUserIdRows.map((row) => candidateUserIds.push(row.user_id));
+  } else if (matchGroupConfig.officeFilter === "excludeMyOffice") {
+    const [officeMatchUserIdRows] = await pool.query<RowDataPacket[]>(
+      `SELECT user_id FROM user WHERE office_id != ?`,
+      [owner.officeId]
+    );
+    officeMatchUserIdRows.map((row) => candidateUserIds.push(row.user_id));
+  }
+  console.log("office filter done");
+
+  if (matchGroupConfig.skillFilter.length > 0) {
+    const [skillMatchSkillIdRows] = await pool.query<RowDataPacket[]>(
+      `SELECT skill_id FROM skill WHERE skill_name IN (?)`,
+      [matchGroupConfig.skillFilter]
+    );
+    const [skillMatchUserIdRows] = await pool.query<RowDataPacket[]>(
+      `SELECT user_id FROM skill_member WHERE skill_id IN (?)`,
+      [skillMatchSkillIdRows.map((row) => row.skill_id)]
+    );
+    skillMatchUserIdRows.map((row) => candidateUserIds.push(row.user_id));
+  }
+  console.log("skill filter done");
+
+  if (matchGroupConfig.neverMatchedFilter) {
+    const matchedBeforeUserIds = await getUserIdsBeforeMatched(owner.userId);
+    candidateUserIds = Array.from(
+      new Set([...candidateUserIds, ...matchedBeforeUserIds])
+    );
+  }
+  console.log("never matched filter done");
+
+  console.log(`found ${candidateUserIds.length} users as members`);
+  if (candidateUserIds.length < matchGroupConfig.numOfMembers - 1) {
+    return undefined;
+  }
+
+  const memberIds: string[] = [];
+  while (memberIds.length < matchGroupConfig.numOfMembers - 1) {
+    const randomIndex = Math.floor(Math.random() * candidateUserIds.length);
+    if (!memberIds.includes(candidateUserIds[randomIndex])) {
+      memberIds.push(candidateUserIds[randomIndex]);
+    }
+  }
+
+  return getUsersByUserIds(memberIds.concat(owner.userId));
 };
