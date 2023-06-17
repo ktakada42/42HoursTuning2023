@@ -4,7 +4,7 @@ import { checkSkillsRegistered, createMatchGroup } from "./usecase";
 import { getUserByUserId } from "../users/repository";
 import {
   getMatchGroupIdsByUserId,
-  getMatchGroupsByMatchGroupIds,
+  getMatchGroupsByMatchGroupIdsWithoutNPlusOne,
 } from "./repository";
 
 export const matchGroupRouter = express.Router();
@@ -247,7 +247,7 @@ matchGroupRouter.get(
         return;
       }
 
-      const matchGroups = await getMatchGroupsByMatchGroupIds(
+      const matchGroups = await getMatchGroupsByMatchGroupIdsWithoutNPlusOne(
         matchGroupIds,
         status
       );
