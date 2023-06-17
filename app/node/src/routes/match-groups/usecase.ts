@@ -1,11 +1,8 @@
 import { v4 as uuidv4 } from "uuid";
 import { MatchGroupDetail, MatchGroupConfig } from "../../model/types";
-import {
-  getMatchGroupDetailByMatchGroupId,
-  hasSkillNameRecord,
-  insertMatchGroup,
-} from "./repository";
+import { hasSkillNameRecord, insertMatchGroup } from "./repository";
 import { getMembers, getOwnerByUserId } from "../users/repository";
+import { convertDateToString } from "../../model/utils";
 
 export const checkSkillsRegistered = async (
   skillNames: string[]
@@ -30,6 +27,7 @@ export const createMatchGroup = async (
   }
 
   const matchGroupId = uuidv4();
+  const createdAt = new Date();
   await insertMatchGroup({
     matchGroupId,
     matchGroupName: matchGroupConfig.matchGroupName,
@@ -37,8 +35,16 @@ export const createMatchGroup = async (
     members: matchedMembers,
     status: "open",
     createdBy: matchGroupConfig.ownerId,
-    createdAt: new Date(),
+    createdAt,
   });
 
-  return await getMatchGroupDetailByMatchGroupId(matchGroupId);
+  return {
+    matchGroupId,
+    matchGroupName: matchGroupConfig.matchGroupName,
+    description: matchGroupConfig.description,
+    members: matchedMembers,
+    status: "open",
+    createdBy: matchGroupConfig.ownerId,
+    createdAt: convertDateToString(createdAt),
+  };
 };
