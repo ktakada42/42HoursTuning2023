@@ -25,7 +25,7 @@ export const convertToUsers = (rows: RowDataPacket[]): User[] => {
   }));
 };
 
-export const convertToSearchedUser = (
+export const convertToSearchedUsers = (
   rows: RowDataPacket[]
 ): SearchedUser[] => {
   return rows.map((row: RowDataPacket) => ({
