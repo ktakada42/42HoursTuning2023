@@ -32,7 +32,7 @@ usersRouter.get(
       // 500px x 500pxでリサイズ
       const data = await sharp(path)
         .resize({ width: 500, height: 500 })
-        .toFormat("png")
+        .toFormat("jpg")
         .toBuffer();
       res.status(200).json({
         fileName: userIcon.fileName,
