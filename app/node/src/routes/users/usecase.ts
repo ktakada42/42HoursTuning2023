@@ -14,33 +14,33 @@ export const getUsersByKeyword = async (
   keyword: string,
   targets: Target[]
 ): Promise<SearchedUser[]> => {
-  let users: SearchedUser[] = [];
+  const users: SearchedUser[] = [];
   for (const target of targets) {
     const oldLen = users.length;
     switch (target) {
       case "userName":
-        users = users.concat(await getUsersByUserName(keyword));
+        users.push(...(await getUsersByUserName(keyword)));
         break;
       case "kana":
-        users = users.concat(await getUsersByKana(keyword));
+        users.push(...(await getUsersByKana(keyword)));
         break;
       case "mail":
-        users = users.concat(await getUsersByMail(keyword));
+        users.push(...(await getUsersByMail(keyword)));
         break;
       case "department":
-        users = users.concat(await getUsersByDepartmentName(keyword));
+        users.push(...(await getUsersByDepartmentName(keyword)));
         break;
       case "role":
-        users = users.concat(await getUsersByRoleName(keyword));
+        users.push(...(await getUsersByRoleName(keyword)));
         break;
       case "office":
-        users = users.concat(await getUsersByOfficeName(keyword));
+        users.push(...(await getUsersByOfficeName(keyword)));
         break;
       case "skill":
-        users = users.concat(await getUsersBySkillName(keyword));
+        users.push(...(await getUsersBySkillName(keyword)));
         break;
       case "goal":
-        users = users.concat(await getUsersByGoal(keyword));
+        users.push(...(await getUsersByGoal(keyword)));
         break;
     }
     console.log(`${users.length - oldLen} users found by ${target}`);
