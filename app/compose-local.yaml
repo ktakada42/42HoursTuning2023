@@ -15,6 +15,7 @@ services:
     volumes:
       - ../images/user-icon:/node/images/user-icon
       - ./node/src:/node/src
+      - ../cache:/var/cache/nginx
   frontend:
     container_name: frontend
     build:
@@ -37,3 +38,4 @@ services:
       - ../volume/mysql:/var/lib/mysql
       - ./mysql/mysql_migration:/etc/mysql/mysql_migration
       - ./mysql/mysql.conf:/etc/mysql/conf.d/mysql.cnf
+      - ./mysql/logs:/var/log/mysql
