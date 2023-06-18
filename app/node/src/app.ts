@@ -1,5 +1,6 @@
 import express from "express";
 import cookieParser from "cookie-parser";
+import compression from "compression";
 import { sessionRouter } from "./routes/session/controller";
 import { checkAuthMiddleware } from "./middleware/auth";
 import { usersRouter } from "./routes/users/controller";
@@ -9,6 +10,7 @@ export const app: express.Express = express();
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(compression());
 
 // ログインしているかチェック
 app.use(checkAuthMiddleware);
