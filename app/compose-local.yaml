@@ -15,6 +15,7 @@ services:
     volumes:
       - ../images/user-icon:/node/images/user-icon
       - ./node/src:/node/src
+      - ./node/logs:/node/logs
   frontend:
     container_name: frontend
     build:
