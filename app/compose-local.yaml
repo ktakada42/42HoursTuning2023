@@ -16,7 +16,7 @@ services:
     volumes:
       - ../images/user-icon:/node/images/user-icon
       - ./node/src:/node/src
-      - ./node/logs:/node/logs
+      - ./node/logs:/var/log/node
   frontend:
     container_name: frontend
     build:
@@ -39,4 +39,27 @@ services:
       - ../volume/mysql:/var/lib/mysql
       - ./mysql/mysql_migration:/etc/mysql/mysql_migration
       - ./mysql/mysql.conf:/etc/mysql/conf.d/mysql.cnf
+      - ./mysql/logs:/var/log/mysql
+  datadog:
+    container_name: datadog
+    build: datadog
+    pid: host
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_LOGS_CONFIG_DOCKER_CONTAINER_USE_FILE=true
+      - DD_CONTAINER_EXCLUDE="name:datadog"
+      - DD_SITE=ap1.datadoghq.com
+      - DD_PROCESS_AGENT_ENABLED=true
+      - DD_LOGS_INJECTION=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /opt/datadog-agent/run:/opt/datadog-agent/run:rw
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+      - /etc/passwd:/etc/passwd:ro
+      - ./nginx/logs:/var/log/nginx
+      - ./node/logs:/var/log/node
       - ./mysql/logs:/var/log/mysql

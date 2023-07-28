@@ -1,0 +1,38 @@
+### Every instance is scheduled independently of the others.
+#
+instances:
+  ## @param nginx_status_url - string - required
+  ## For every instance, you need an `nginx_status_url` and can optionally
+  ## supply a list of tags.  This plugin requires nginx to be compiled with
+  ## the nginx stub status module option, and activated with the correct
+  ## configuration stanza.  On debian/ubuntu, this is included in the
+  ## `nginx-extras` package.  For more details, see:
+  ##
+  ##   http://docs.datadoghq.com/integrations/nginx/
+  ##
+  ## For NGINX Plus API Release 13+ users using the http_api_module,
+  ## set nginx_status_url to the location of the `/api` endpoint.
+  ## E.g. `nginx_status_url: http://localhost:8080/api`
+  #
+  - nginx_status_url: http://nginx:80/nginx_status/
+
+#Log section
+logs:
+  # - type : (mandatory) type of log input source (tcp / udp / file)
+  #   port / path : (mandatory) Set port if type is tcp or udp. Set path if type is file
+  #   service : (mandatory) name of the service owning the log
+  #   source : (mandatory) attribute that defines which integration is sending the log
+  #   sourcecategory : (optional) Multiple value attribute. Can be used to refine the source attribute
+  #   tags: (optional) add tags to each log collected
+
+  - type: file
+    service: nginx
+    path: /var/log/nginx/access.log
+    source: nginx
+    sourcecategory: http_web_access
+
+  - type: file
+    service: nginx
+    path: /var/log/nginx/error.log
+    source: nginx
+    sourcecategory: http_web_access
