@@ -14,7 +14,7 @@ instances:
   ## set nginx_status_url to the location of the `/api` endpoint.
   ## E.g. `nginx_status_url: http://localhost:8080/api`
   #
-  - nginx_status_url: http://nginx:80/nginx_status/
+  - nginx_status_url: http://nginx:81/nginx_status/
 
 #Log section
 logs:
