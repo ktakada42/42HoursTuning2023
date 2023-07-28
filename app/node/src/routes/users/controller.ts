@@ -5,6 +5,7 @@ import { getUserByUserId } from "./repository";
 import { getFileByFileId } from "../files/repository";
 import { SearchedUser, Target, User } from "../../model/types";
 import { getUsersByKeyword } from "./usecase";
+import { logger } from "../../logger";
 
 export const usersRouter = express.Router();
 
@@ -25,7 +26,7 @@ usersRouter.get(
           message:
             "指定されたユーザーアイコンIDのユーザーアイコン画像が見つかりません。",
         });
-        console.warn("specified user icon not found");
+        logger.warn("specified user icon not found");
         return;
       }
       const path = userIcon.path;
@@ -37,7 +38,7 @@ usersRouter.get(
         fileName: userIcon.fileName,
         data: data.toString("base64"),
       });
-      console.log("successfully get user icon");
+      logger.info("successfully get user icon");
     } catch (e) {
       next(e);
     }
@@ -65,7 +66,7 @@ usersRouter.get(
     try {
       const users = await getUsers(limit, offset);
       res.status(200).json(users);
-      console.log("successfully get users list");
+      logger.info("successfully get users list");
     } catch (e) {
       next(e);
     }
@@ -84,20 +85,20 @@ usersRouter.get(
     if (typeof keyword !== "string") {
       if (!keyword) {
         res.status(400).json({ message: "検索キーワードを指定してください。" });
-        console.warn("keyword not specified");
+        logger.warn("keyword not specified");
         return;
       }
       res
         .status(400)
         .json({ message: "検索キーワードは1つのみ指定してください。" });
-      console.warn("multiple keyword specified");
+      logger.warn("multiple keyword specified");
       return;
     }
     if (keyword.length < 2 || 50 < keyword.length) {
       res.status(400).json({
         message: "検索キーワードは2文字以上50文字以下で指定してください。",
       });
-      console.warn("specified keyword length too short or long");
+      logger.warn("specified keyword length too short or long");
       return;
     }
 
@@ -120,7 +121,7 @@ usersRouter.get(
     }
     if (!isValidTarget(targets)) {
       res.status(400).json({ message: "不正なtargetが指定されています。" });
-      console.warn("invalid target specified");
+      logger.warn("invalid target specified");
       return;
     }
 
@@ -140,7 +141,7 @@ usersRouter.get(
       );
       if (duplicateUsers.length === 0) {
         res.json([]);
-        console.log("no user found");
+        logger.info("no user found");
         return;
       }
 
@@ -178,7 +179,7 @@ usersRouter.get(
           };
         });
       res.json(users);
-      console.log(`successfully searched ${users.length} users`);
+      logger.info(`successfully searched ${users.length} users`);
     } catch (e) {
       next(e);
     }
@@ -214,11 +215,11 @@ usersRouter.get(
       const user = await getUserByUserId(userId);
       if (!user) {
         res.status(404).json({ message: "ユーザーが見つかりませんでした。" });
-        console.warn("session user is not found");
+        logger.warn("session user is not found");
         return;
       }
       res.status(200).json(user);
-      console.log("successfully get login user");
+      logger.info("successfully get login user");
     } catch (e) {
       next(e);
     }

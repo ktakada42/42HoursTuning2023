@@ -6,6 +6,7 @@ import {
   getMatchGroupIdsByUserId,
   getMatchGroupsByMatchGroupIds,
 } from "./repository";
+import { logger } from "../../logger";
 
 export const matchGroupRouter = express.Router();
 
@@ -34,18 +35,18 @@ matchGroupRouter.post(
       if (!(await isReqBodyValueCorrect(reqBody, res))) {
         return;
       }
-      console.log("specified condition is valid");
+      logger.info("specified condition is valid");
 
       const matchGroupDetail = await createMatchGroup(reqBody);
       if (!matchGroupDetail) {
         res.status(500).json({
           message: "マッチグループの作成に失敗しました。",
         });
-        console.error("failed to create a new match group");
+        logger.error("failed to create a new match group");
         return;
       }
       res.status(201).json(matchGroupDetail);
-      console.log("successfully created a new match group");
+      logger.info("successfully created a new match group");
     } catch (e) {
       next(e);
     }
@@ -63,7 +64,7 @@ const isReqBodyTypeCorrect = (
     res.status(400).json({
       message: "マッチグループ名を文字列で指定してください。",
     });
-    console.warn("matchGroupName is not specified or not string");
+    logger.warn("matchGroupName is not specified or not string");
     return false;
   }
   if (
@@ -73,7 +74,7 @@ const isReqBodyTypeCorrect = (
     res.status(400).json({
       message: "マッチグループの説明を文字列で指定してください。",
     });
-    console.warn("description is not specified or not string");
+    logger.warn("description is not specified or not string");
     return false;
   }
   if (
@@ -83,7 +84,7 @@ const isReqBodyTypeCorrect = (
     res.status(400).json({
       message: "作成したいマッチグループの人数を数値で指定してください。",
     });
-    console.warn("numOfMembers is not specified or not number");
+    logger.warn("numOfMembers is not specified or not number");
     return false;
   }
   if (
@@ -93,7 +94,7 @@ const isReqBodyTypeCorrect = (
     res.status(400).json({
       message: "マッチグループの部署フィルタを文字列で指定してください。",
     });
-    console.warn("departmentFilter is not specified or not string");
+    logger.warn("departmentFilter is not specified or not string");
     return false;
   }
   if (
@@ -103,7 +104,7 @@ const isReqBodyTypeCorrect = (
     res.status(400).json({
       message: "マッチグループのオフィスフィルタを文字列で指定してください。",
     });
-    console.warn("officeFilter is not specified or not string");
+    logger.warn("officeFilter is not specified or not string");
     return false;
   }
   if (
@@ -117,7 +118,7 @@ const isReqBodyTypeCorrect = (
       message:
         "マッチグループのスキルフィルタを文字列の配列で指定してください。",
     });
-    console.warn("skillFilter is not specified or not array");
+    logger.warn("skillFilter is not specified or not array");
     return false;
   }
   if (
@@ -128,7 +129,7 @@ const isReqBodyTypeCorrect = (
       message:
         "マッチグループのneverMatchedフィルタを真偽値で指定してください。",
     });
-    console.warn("neverMatchedFilter is not specified or not boolean");
+    logger.warn("neverMatchedFilter is not specified or not boolean");
     return false;
   }
 
@@ -143,14 +144,14 @@ const isReqBodyValueCorrect = async (
     res.status(400).json({
       message: "マッチグループ名は1文字以上50文字以下で指定してください。",
     });
-    console.warn("matchGroupName mush be 1 to 50 characters");
+    logger.warn("matchGroupName mush be 1 to 50 characters");
     return false;
   }
   if (120 < reqBody.description.length) {
     res.status(400).json({
       message: "マッチグループの説明は120文字以下で指定してください。",
     });
-    console.warn("description must be less than 120 characters");
+    logger.warn("description must be less than 120 characters");
     return false;
   }
   if (reqBody.numOfMembers < 2 || 8 < reqBody.numOfMembers) {
@@ -158,7 +159,7 @@ const isReqBodyValueCorrect = async (
       message:
         "作成したいマッチグループの人数は2人以上8人以下で指定してください。",
     });
-    console.warn("numOfMembers must be 2 to 8");
+    logger.warn("numOfMembers must be 2 to 8");
     return false;
   }
   switch (reqBody.departmentFilter) {
@@ -172,7 +173,7 @@ const isReqBodyValueCorrect = async (
       res.status(400).json({
         message: `マッチグループの部署フィルタは'onlyMyDepartment', 'excludeMyDepartment', 'none'のいずれかで指定してください。`,
       });
-      console.warn(
+      logger.warn(
         `departmentFilter must be "onlyMyDepartment", "excludeMyDepartment" or "none"`
       );
       return false;
@@ -188,7 +189,7 @@ const isReqBodyValueCorrect = async (
       res.status(400).json({
         message: `マッチグループのオフィスフィルタは'onlyMyOffice', 'excludeMyOffice', 'none'のいずれかで指定してください。`,
       });
-      console.warn(
+      logger.warn(
         `officeFilter must be "onlyMyOffice", "excludeMyOffice" or "none"`
       );
       return false;
@@ -203,7 +204,7 @@ const isReqBodyValueCorrect = async (
     res.status(400).json({
       message: `${noExistSkill}はスキルとして登録されていません。`,
     });
-    console.warn(`skill must be registered in skill table`);
+    logger.warn(`skill must be registered in skill table`);
     return false;
   }
 
@@ -226,7 +227,7 @@ matchGroupRouter.get(
         res.status(404).json({
           message: "指定されたユーザーは存在しません。",
         });
-        console.warn("specified user not exist");
+        logger.warn("specified user not exist");
         return;
       }
       const status = req.query.status === "open" ? "open" : "all";
@@ -241,7 +242,7 @@ matchGroupRouter.get(
       }
 
       const matchGroupIds = await getMatchGroupIdsByUserId(user.userId);
-      console.log(`user participated in ${matchGroupIds.length} match groups`);
+      logger.info(`user participated in ${matchGroupIds.length} match groups`);
       if (matchGroupIds.length === 0) {
         res.json([]);
         return;
@@ -253,7 +254,7 @@ matchGroupRouter.get(
       );
       if (matchGroups.length === 0) {
         res.json([]);
-        console.log("no valid match groups found");
+        logger.info("no valid match groups found");
         return;
       }
 
@@ -269,7 +270,7 @@ matchGroupRouter.get(
       });
 
       res.json(matchGroups.slice(offset, offset + limit));
-      console.log("successfully found match groups");
+      logger.info("successfully found match groups");
     } catch (e) {
       next(e);
     }

@@ -11,6 +11,7 @@ import {
   insertMatchGroup,
 } from "./repository";
 import { getUserForFilter } from "../users/repository";
+import { logger } from "../../logger";
 
 export const checkSkillsRegistered = async (
   skillNames: string[]
@@ -34,7 +35,7 @@ export const createMatchGroup = async (
   while (members.length < matchGroupConfig.numOfMembers) {
     // デフォルトは50秒でタイムアウト
     if (Date.now() - startTime > (!timeout ? 50000 : timeout)) {
-      console.error("not all members found before timeout");
+      logger.error("not all members found before timeout");
       return;
     }
     const candidate = await getUserForFilter();
@@ -46,7 +47,7 @@ export const createMatchGroup = async (
         candidate.departmentName
       )
     ) {
-      console.log(`${candidate.userId} is not passed department filter`);
+      logger.info(`${candidate.userId} is not passed department filter`);
       continue;
     } else if (
       matchGroupConfig.officeFilter !== "none" &&
@@ -56,7 +57,7 @@ export const createMatchGroup = async (
         candidate.officeName
       )
     ) {
-      console.log(`${candidate.userId} is not passed office filter`);
+      logger.info(`${candidate.userId} is not passed office filter`);
       continue;
     } else if (
       matchGroupConfig.skillFilter.length > 0 &&
@@ -64,20 +65,20 @@ export const createMatchGroup = async (
         candidate.skillNames.includes(skill)
       )
     ) {
-      console.log(`${candidate.userId} is not passed skill filter`);
+      logger.info(`${candidate.userId} is not passed skill filter`);
       continue;
     } else if (
       matchGroupConfig.neverMatchedFilter &&
       !(await isPassedMatchFilter(matchGroupConfig.ownerId, candidate.userId))
     ) {
-      console.log(`${candidate.userId} is not passed never matched filter`);
+      logger.info(`${candidate.userId} is not passed never matched filter`);
       continue;
     } else if (members.some((member) => member.userId === candidate.userId)) {
-      console.log(`${candidate.userId} is already added to members`);
+      logger.info(`${candidate.userId} is already added to members`);
       continue;
     }
     members = members.concat(candidate);
-    console.log(`${candidate.userId} is added to members`);
+    logger.info(`${candidate.userId} is added to members`);
   }
 
   const matchGroupId = uuidv4();

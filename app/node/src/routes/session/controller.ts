@@ -8,6 +8,7 @@ import {
   getSessionBySessionId,
   deleteSessions,
 } from "./repository";
+import { logger } from "../../logger";
 
 export const sessionRouter = express.Router();
 
@@ -28,7 +29,7 @@ sessionRouter.post(
       res.status(400).json({
         message: "メールアドレスとパスワードを文字列で入力してください。",
       });
-      console.warn("email or password is empty or not string");
+      logger.warn("email or password is empty or not string");
       return;
     }
 
@@ -45,7 +46,7 @@ sessionRouter.post(
         res.status(401).json({
           message: "メールアドレスまたはパスワードが正しくありません。",
         });
-        console.warn("email or password is invalid");
+        logger.warn("email or password is invalid");
         return;
       }
 
@@ -56,7 +57,7 @@ sessionRouter.post(
           path: "/",
         });
         res.json(session);
-        console.log("user already logged in");
+        logger.info("user already logged in");
         return;
       }
 
@@ -67,7 +68,7 @@ sessionRouter.post(
         res.status(500).json({
           message: "ログインに失敗しました。",
         });
-        console.error("failed to insert session");
+        logger.error("failed to insert session");
         return;
       }
 
@@ -76,7 +77,7 @@ sessionRouter.post(
         path: "/",
       });
       res.status(201).json(createdSession);
-      console.log("successfully logged in");
+      logger.info("successfully logged in");
     } catch (e) {
       next(e);
     }
@@ -97,7 +98,7 @@ sessionRouter.delete(
       await deleteSessions(userId);
       res.clearCookie("SESSION_ID", { httpOnly: true, path: "/" });
       res.status(204).send();
-      console.log("successfully logged out");
+      logger.info("successfully logged out");
     } catch (e) {
       next(e);
     }

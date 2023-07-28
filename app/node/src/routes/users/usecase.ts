@@ -1,3 +1,4 @@
+import { logger } from "../../logger";
 import { Target, SearchedUser } from "../../model/types";
 import {
   getUsersByUserName,
@@ -43,7 +44,7 @@ export const getUsersByKeyword = async (
         users = users.concat(await getUsersByGoal(keyword));
         break;
     }
-    console.log(`${users.length - oldLen} users found by ${target}`);
+    logger.info(`${users.length - oldLen} users found by ${target}`);
   }
   return users;
 };

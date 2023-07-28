@@ -4,6 +4,7 @@ import { sessionRouter } from "./routes/session/controller";
 import { checkAuthMiddleware } from "./middleware/auth";
 import { usersRouter } from "./routes/users/controller";
 import { matchGroupRouter } from "./routes/match-groups/controller";
+import { logger } from "./logger";
 
 export const app: express.Express = express();
 
@@ -40,10 +41,10 @@ app.use(
       res
         .status(400)
         .json({ message: "リクエストボディがJSON形式ではありません。" });
-      console.warn(err);
+      logger.warn(err);
       return;
     }
     res.status(500).json({ message: "Internal Server Error" });
-    console.error(err);
+    logger.error(err);
   }
 );
