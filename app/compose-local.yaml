@@ -14,6 +14,9 @@ services:
     build:
       context: ./node
       dockerfile: Dockerfile.local
+    environment:
+      DD_LOGS_INJECTION: true
+      DD_TRACE_AGENT_URL: "http://datadog:8126"
     volumes:
       - ../images/user-icon:/node/images/user-icon
       - ./node/src:/node/src
@@ -53,7 +56,6 @@ services:
       - DD_CONTAINER_EXCLUDE="name:datadog"
       - DD_SITE=ap1.datadoghq.com
       - DD_PROCESS_AGENT_ENABLED=true
-      - DD_LOGS_INJECTION=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
