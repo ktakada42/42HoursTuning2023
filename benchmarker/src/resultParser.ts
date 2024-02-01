@@ -39,7 +39,6 @@ interface apiResultForSubmit {
   success: number;
   fail: number;
   timeout: number;
-  rps: number;
 }
 
 const readFile = (resultFile: string): Log[] => {
@@ -49,55 +48,83 @@ const readFile = (resultFile: string): Log[] => {
   return fileLines.map((line) => JSON.parse(line));
 };
 
+const APIs = {
+  login: "login",
+  getUsers: "getUsers",
+  getUserIcon: "getUserIcon",
+  searchUsers: "searchUsers",
+  createMatchGroup: "createMatchGroup",
+  getMatchGroups: "getMatchGroups",
+} as const;
+
+const getAPIName = (url: string): string => {
+  switch (true) {
+    case url.includes("session"):
+      return APIs.login;
+    case url.endsWith("users"):
+      return APIs.getUsers;
+    case url.includes("user-icon"):
+      return APIs.getUserIcon;
+    case url.includes("search"):
+      return APIs.searchUsers;
+    case url.endsWith("match-groups"):
+      return APIs.createMatchGroup;
+    case url.includes("match-groups"):
+      return APIs.getMatchGroups;
+    default:
+      return "";
+  }
+};
+
 const createResultAggregator = (
   checksResults: Log[],
   timeoutResults: Log[]
 ): apiResult[] => {
   const scenarios: scenario[] = [
     {
-      name: "postSessionScenario",
+      name: APIs.login,
       method: "POST",
       url: "/api/v1/session",
     },
     {
-      name: "getUserIconScenario",
-      method: "GET",
-      url: "/api/v1/users/user-icon/{userIconId}",
-    },
-    {
-      name: "getUsersScenario",
+      name: APIs.getUsers,
       method: "GET",
       url: "/api/v1/users",
     },
     {
-      name: "searchUsersScenario",
+      name: APIs.getUserIcon,
+      method: "GET",
+      url: "/api/v1/users/user-icon/{userIconId}",
+    },
+    {
+      name: APIs.searchUsers,
       method: "GET",
       url: "/api/v1/users/search",
     },
     {
-      name: "createMatchGroupsScenario",
-      method: "POST",
-      url: "/api/v1/match-groups",
-    },
-    {
-      name: "getMatchGroupsScenario",
+      name: APIs.getMatchGroups,
       method: "GET",
       url: "/api/v1/match-groups/members/{userId}",
+    },
+    {
+      name: APIs.createMatchGroup,
+      method: "POST",
+      url: "/api/v1/match-groups",
     },
   ];
 
   return scenarios.map((scenario) => {
     const timeout = timeoutResults.filter(
-      (result) => result.data.tags.scenario === scenario.name
+      (result) => getAPIName(result.data.tags.url) === scenario.name
     ).length;
     const success = checksResults.filter(
       (result) =>
-        result.data.tags.scenario === scenario.name && result.data.value === 1
+        result.data.tags.api === scenario.name && result.data.value === 1
     ).length;
     const fail =
       checksResults.filter(
         (result) =>
-          result.data.tags.scenario === scenario.name && result.data.value === 0
+          result.data.tags.api === scenario.name && result.data.value === 0
       ).length - timeout;
 
     return {
@@ -120,9 +147,7 @@ const outputApiResult = (apiResult: apiResult): apiResultForSubmit => {
       }, success: ${apiResult.success}, fail: ${apiResult.fail}, timeout: ${
       apiResult.timeout
     }
-      ✓ rps: ${
-        Math.round(((apiResult.success + apiResult.fail) / 60) * 100) / 100
-      }`
+    `
   );
 
   return {
@@ -131,7 +156,6 @@ const outputApiResult = (apiResult: apiResult): apiResultForSubmit => {
     success: apiResult.success,
     fail: apiResult.fail,
     timeout: apiResult.timeout,
-    rps: Math.round((apiResult.success / 60) * 100) / 100,
   };
 };
 
@@ -183,6 +207,8 @@ const main = () => {
 
   console.log(`Results per API:`);
   const finalResult = calcResults(apiResults);
+  const totalRequests =
+    finalResult.totalSuccess + finalResult.totalFail + timeoutResults.length;
   console.log(
     `
     ================================================================
@@ -190,16 +216,13 @@ const main = () => {
 
         Score: ${finalResult.score.toString().padStart(19)}
 
-        Total requests: ${(
-          finalResult.totalSuccess +
-          finalResult.totalFail +
-          timeoutResults.length
-        )
-          .toString()
-          .padStart(10)}
+        Total requests: ${totalRequests.toString().padStart(10)}
           Success: ${finalResult.totalSuccess.toString().padStart(15)}
           Fail: ${finalResult.totalFail.toString().padStart(18)}
           Timeout: ${timeoutResults.length.toString().padStart(15)}
+        RPS: ${(Math.round((totalRequests / 60) * 100) / 100)
+          .toString()
+          .padStart(21)}
     ================================================================
     `
   );

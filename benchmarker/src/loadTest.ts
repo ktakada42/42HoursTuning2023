@@ -1,4 +1,4 @@
-import { check, sleep } from "k6";
+import { check } from "k6";
 import http from "k6/http";
 import { Options } from "k6/options";
 import exec from "k6/execution";
@@ -13,8 +13,7 @@ const url = (path: string) => `${BASE_URL}${path}`;
 
 export const options: Options = {
   scenarios: {
-    // ログインAPIのシナリオ
-    postSessionScenario: {
+    rampingTestSuite: {
       executor: "ramping-vus",
       startVUs: 0,
       stages: [
@@ -27,97 +26,25 @@ export const options: Options = {
       ],
       gracefulRampDown: "1m",
       gracefulStop: "1m",
-      exec: "postSessionAPI",
-    },
-
-    // ユーザーアイコン画像取得APIのシナリオ
-    getUserIconScenario: {
-      executor: "ramping-vus",
-      startVUs: 0,
-      stages: [
-        { duration: "10s", target: 40 },
-        { duration: "10s", target: 80 },
-        { duration: "10s", target: 120 },
-        { duration: "10s", target: 120 },
-        { duration: "10s", target: 80 },
-        { duration: "10s", target: 0 },
-      ],
-      gracefulRampDown: "1m",
-      gracefulStop: "1m",
-      exec: "getUserIconAPI",
-    },
-
-    // ユーザー一覧取得APIのシナリオ
-    getUsersScenario: {
-      executor: "ramping-vus",
-      startVUs: 0,
-      stages: [
-        { duration: "10s", target: 40 },
-        { duration: "10s", target: 80 },
-        { duration: "10s", target: 120 },
-        { duration: "10s", target: 120 },
-        { duration: "10s", target: 80 },
-        { duration: "10s", target: 0 },
-      ],
-      gracefulRampDown: "1m",
-      gracefulStop: "1m",
-      exec: "getUsersAPI",
-    },
-
-    // ユーザー検索APIのシナリオ
-    searchUsersScenario: {
-      executor: "ramping-vus",
-      startVUs: 0,
-      stages: [
-        { duration: "10s", target: 40 },
-        { duration: "10s", target: 80 },
-        { duration: "10s", target: 120 },
-        { duration: "10s", target: 120 },
-        { duration: "10s", target: 80 },
-        { duration: "10s", target: 0 },
-      ],
-      gracefulRampDown: "1m",
-      gracefulStop: "1m",
-      exec: "searchUsersAPI",
-    },
-
-    // マッチグループ作成APIのシナリオ
-    createMatchGroupsScenario: {
-      executor: "ramping-vus",
-      startVUs: 0,
-      stages: [
-        { duration: "10s", target: 40 },
-        { duration: "10s", target: 80 },
-        { duration: "10s", target: 120 },
-        { duration: "10s", target: 120 },
-        { duration: "10s", target: 80 },
-        { duration: "10s", target: 0 },
-      ],
-      gracefulRampDown: "1m",
-      gracefulStop: "1m",
-      exec: "createMatchGroupsAPI",
-    },
-
-    // マッチグループ一覧取得APIのシナリオ
-    getMatchGroupsScenario: {
-      executor: "ramping-vus",
-      startVUs: 0,
-      stages: [
-        { duration: "10s", target: 40 },
-        { duration: "10s", target: 80 },
-        { duration: "10s", target: 120 },
-        { duration: "10s", target: 120 },
-        { duration: "10s", target: 80 },
-        { duration: "10s", target: 0 },
-      ],
-      gracefulRampDown: "1m",
-      gracefulStop: "1m",
-      exec: "getMatchGroupsAPI",
+      exec: "testSuite",
     },
   },
 };
 
-export const postSessionAPI = () => {
+export const testSuite = () => {
+  const { sessionId, userId } = login();
+  if (sessionId == "" || userId == "") {
+    return;
+  }
+  getUsers(sessionId);
+  getUserIcon(sessionId);
+  searchUsers(sessionId);
+  getMatchGroups(sessionId, userId);
+  createMatchGroup(sessionId);
+};
+
+// ログインAPI
+const login = (): { sessionId: string; userId: string } => {
   const index =
     exec.scenario.iterationInInstance < USER_NUM
       ? exec.scenario.iterationInInstance
@@ -131,51 +58,98 @@ export const postSessionAPI = () => {
     }),
     { headers: { "Content-Type": "application/json" }, timeout: "50s" }
   );
-  check(res, {
-    "Login: is status 200 or 201": () =>
-      res.status === 200 || res.status === 201,
-  });
+  if (
+    !check(
+      res,
+      {
+        "Login: is status 200 or 201": () =>
+          res.status === 200 || res.status === 201,
+      },
+      { api: "login" }
+    )
+  ) {
+    return { sessionId: "", userId: "" };
+  }
+  return {
+    sessionId: (res.json("sessionId") || "").toString(),
+    userId: (res.json("userId") || "").toString(),
+  };
 };
 
-export const getUserIconAPI = () => {
-  const res = http.get(url(`/api/v1/users/user-icon/test-file-id`), {
-    cookies: {
-      SESSION_ID: "test-session-id",
-    },
-    timeout: "50s",
-  });
-  check(res, {
-    "Get user icon: is status 200": () => res.status === 200,
-  });
-  sleep(0.7);
-};
-
-export const getUsersAPI = () => {
+// ユーザー一覧取得API
+const getUsers = (sessionId: string) => {
   const res = http.get(url(`/api/v1/users`), {
     cookies: {
-      SESSION_ID: "test-session-id",
+      SESSION_ID: sessionId,
     },
     timeout: "50s",
   });
-  check(res, {
-    "Get users: is status 200": () => res.status === 200,
-  });
+  check(
+    res,
+    {
+      "Get users: is status 200": () => res.status === 200,
+    },
+    { api: "getUsers" }
+  );
 };
 
-export const searchUsersAPI = () => {
+// ユーザーアイコン画像取得API
+const getUserIcon = (sessionId: string) => {
+  const res = http.get(url(`/api/v1/users/user-icon/test-file-id`), {
+    cookies: {
+      SESSION_ID: sessionId,
+    },
+    timeout: "50s",
+  });
+  check(
+    res,
+    {
+      "Get user icon: is status 200": () => res.status === 200,
+    },
+    { api: "getUserIcon" }
+  );
+};
+
+// ユーザー検索API
+const searchUsers = (sessionId: string) => {
   // 検索キーワードは"常務"
   const res = http.get(url(`/api/v1/users/search?q=%E5%B8%B8%E5%8B%99`), {
     cookies: {
-      SESSION_ID: "test-session-id",
+      SESSION_ID: sessionId,
     },
     timeout: "50s",
   });
-  check(res, {
-    "Get users: is status 200": () => res.status === 200,
-  });
+  check(
+    res,
+    {
+      "Get users: is status 200": () => res.status === 200,
+    },
+    { api: "searchUsers" }
+  );
 };
 
-export const createMatchGroupsAPI = () => {
+// マッチグループ一覧取得API
+const getMatchGroups = (sessionId: string, userId: string) => {
+  const res = http.get(
+    url(`/api/v1/match-groups/members/${userId}?status=open`),
+    {
+      cookies: {
+        SESSION_ID: sessionId,
+      },
+      timeout: "50s",
+    }
+  );
+  check(
+    res,
+    {
+      "Get match-groups: is status 200": () => res.status === 200,
+    },
+    { api: "getMatchGroups" }
+  );
+};
+
+// マッチグループ作成API
+const createMatchGroup = (sessionId: string) => {
   const res = http.post(
     url("/api/v1/match-groups"),
     JSON.stringify({
@@ -188,29 +162,16 @@ export const createMatchGroupsAPI = () => {
       neverMatchedFilter: true,
     }),
     {
-      cookies: { SESSION_ID: "test-session-id" },
+      cookies: { SESSION_ID: sessionId },
       headers: { "Content-Type": "application/json" },
       timeout: "50s",
     }
   );
-  check(res, {
-    "Create match-groups: is status 201": () => res.status === 201,
-  });
-};
-
-export const getMatchGroupsAPI = () => {
-  const res = http.get(
-    url(
-      `/api/v1/match-groups/members/692ee607-9cdf-439b-8b06-1a435c99aa5a?status=open`
-    ),
+  check(
+    res,
     {
-      cookies: {
-        SESSION_ID: "test-session-id",
-      },
-      timeout: "50s",
-    }
+      "Create match-group: is status 201": () => res.status === 201,
+    },
+    { api: "createMatchGroup" }
   );
-  check(res, {
-    "Get match-groups: is status 200": () => res.status === 200,
-  });
 };
